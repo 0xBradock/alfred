@@ -1,6 +1,8 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use std::fmt::{Display, Formatter};
 
-#[allow(dead_code)]
 pub enum Message {
     Quit,
     Edit,
@@ -12,7 +14,6 @@ pub enum Message {
     Cancel,
 }
 
-#[allow(unused)]
 #[derive(Debug)]
 pub enum Mode {
     Normal,
@@ -25,8 +26,7 @@ impl Default for Mode {
     }
 }
 
-#[allow(unused)]
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 pub enum State {
     #[default]
     Init,
@@ -35,12 +35,13 @@ pub enum State {
     Quit,
 }
 
-#[allow(unused)]
 #[derive(Debug)]
 pub enum Screen {
-    Init,
+    /// Main screen with list of goals
     Dashboard,
+    /// Adding or modifying goals
     Edit,
+    /// Prompt to quit application
     Quit,
 }
 
@@ -55,10 +56,6 @@ impl Default for Screen {
         Screen::Dashboard
     }
 }
-#[derive(Debug)]
-pub struct Task {
-    pub name: String,
-}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Goal {
@@ -68,7 +65,6 @@ pub struct Goal {
 #[derive(Debug, Default)]
 pub struct App {
     pub goals: Vec<Goal>,
-    pub tasks: Vec<Task>,
     pub mode: Mode,
     pub screen: Screen,
     pub state: State,
@@ -83,8 +79,17 @@ impl App {
         self.goals.push(g)
     }
 
-    pub fn add_task(&mut self, t: Task) {
-        self.tasks.push(t)
+    pub fn change_state(&mut self, state: State) -> Option<State> {
+        match self.state {
+            State::Init if state == State::Dash => Some(State::Dash),
+            State::Dash => match state {
+                State::Edit if state == State::Edit => Some(State::Edit),
+                State::Quit if state == State::Quit => Some(State::Quit),
+                _ => Some(self.state),
+            },
+            State::Edit if state == State::Dash => Some(State::Dash),
+            _ => Some(self.state),
+        }
     }
 }
 
@@ -104,20 +109,5 @@ mod tests {
         m.add_goal(g);
         assert_eq!(m.goals.len(), 1);
         assert_eq!(m.goals[0].name, goal_name);
-    }
-
-    #[test]
-    fn test_add_task() {
-        let mut m = App::new();
-        assert_eq!(m.tasks.len(), 0);
-
-        let task_name = String::from("a random task");
-        let t: Task = Task {
-            name: task_name.clone(),
-        };
-        m.add_task(t);
-        assert_eq!(m.tasks.len(), 1);
-
-        assert_eq!(m.tasks[0].name, task_name);
     }
 }

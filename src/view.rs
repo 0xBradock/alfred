@@ -1,3 +1,7 @@
+#![allow(dead_code)]
+#![allow(unused_mut)]
+#![allow(unused_variables)]
+
 use std::time::Duration;
 
 use anyhow::{Ok, Result};
@@ -12,9 +16,13 @@ use ratatui::{
     Frame,
 };
 
-use crate::model::{App, Goal, Message, Screen, State, Task};
+use crate::model::{App, Goal, Message, Screen, State};
 
-pub fn ran_app(mut app: App, mut terminal: Terminal<impl Backend>) -> Result<(), anyhow::Error> {
+pub fn ran_app(
+    mut app: &mut App,
+    mut terminal: &mut Terminal<impl Backend>,
+) -> Result<(), anyhow::Error> {
+    // Seed data
     {
         app.add_goal(Goal {
             name: String::from("Build alfred"),
@@ -28,17 +36,11 @@ pub fn ran_app(mut app: App, mut terminal: Terminal<impl Backend>) -> Result<(),
         app.add_goal(Goal {
             name: String::from("Build alfred"),
         });
-        app.add_task(Task {
-            name: String::from("Meeting with client"),
-        });
-        app.add_task(Task {
-            name: String::from("Dentist appointment"),
-        });
     }
 
     Ok(while app.state != State::Quit {
         // Render the current view
-        terminal.draw(|f| view(&mut app, f))?;
+        terminal.draw(|f| ui(f, app))?;
 
         // Handle events and map to a Message
         let mut current_msg = handle_event(&mut app)?;
@@ -57,7 +59,6 @@ fn handle_event(app: &mut App) -> Result<Option<Message>> {
                 return Ok(match app.screen {
                     Screen::Dashboard => handle_dash(key),
                     Screen::Edit => handle_edit(key),
-                    Screen::Init => todo!(),
                     Screen::Quit => todo!(),
                 });
                 // return Ok(handle_key(key));
@@ -99,7 +100,7 @@ fn update(model: &mut App, msg: Message) -> Option<Message> {
     None
 }
 
-fn view(app: &mut App, f: &mut Frame) {
+fn ui(f: &mut Frame, app: &mut App) {
     let today = activities(app);
 
     let main_layout = Layout::new(
@@ -172,19 +173,11 @@ fn view(app: &mut App, f: &mut Frame) {
 fn activities(m: &mut App) -> Vec<Line<'_>> {
     let style = Style::default().add_modifier(Modifier::BOLD);
     let on_time = style.fg(Color::Green);
-    let task = style.fg(Color::Cyan);
     // let overdue = style.fg(Color::Magenta);
-    let mut today: Vec<Line> = m
+    let today: Vec<Line> = m
         .goals
         .iter()
         .map(|g| Line::styled(g.name.clone(), on_time))
         .collect();
-    today.append(
-        &mut m
-            .tasks
-            .iter()
-            .map(|t| Line::styled(t.name.clone(), task))
-            .collect(),
-    );
     today
 }
